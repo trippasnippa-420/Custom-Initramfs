@@ -1,0 +1,5 @@
+#!/bin/zsh
+
+cd extracted
+rm -rf /boot/custom-initramfs.img
+find . -print0 | cpio --null --create --verbose --format=newc | gzip --best > /boot/custom-initramfs.img

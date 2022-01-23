@@ -1,0 +1,27 @@
+#!/bin/busybox sh
+
+# Mount the /proc and /sys filesystems.
+mount -t proc none /proc
+mount -t sysfs none /sys
+mount -t devtmpfs none /dev
+
+# Get encrypted root dev UUID
+crypt_root=$(sed -e 's/^.*crypt_root=//' -e 's/ .*$//' /proc/cmdline)
+rootfsblk=$(findfs ${crypt_root})
+
+# Deez
+echo -en "\e[31;1mNO ALPHABET AGENTS PAST THIS POINT\n\e[32m>>\e[37m Decrypting root drive...\n\e[32m>>\e[37m "
+
+# Mount the root filesystem.
+cryptsetup open ${rootfsblk} root
+mount /dev/mapper/root /mnt/root
+
+
+# Clean up.
+echo -en "\e[0m"
+umount /proc
+umount /sys
+umount /dev
+
+# Boot the real thing.
+exec switch_root /mnt/root /sbin/init
