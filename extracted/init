@@ -7,13 +7,40 @@ mount -t devtmpfs none /dev
 
 # Get encrypted root dev UUID
 crypt_root=$(sed -e 's/^.*crypt_root=//' -e 's/ .*$//' /proc/cmdline)
-rootfsblk=$(findfs ${crypt_root})
+# echo $crypt_root
+rootfsblk=$(findfs $crypt_root)
+# rootfsblk="/dev/sdb2"
+# echo $rootfsblk
 
 # Deez
-echo -en "\e[31;1mNO ALPHABET AGENTS PAST THIS POINT\n\e[32m>>\e[37m Decrypting root drive...\n\e[32m>>\e[37m "
+echo -en "\e[31;1mNO ALPHABET AGENTS PAST THIS POINT\n\e[32m>>\e[37m Decrypting root drive...\n"
+
+# Prompt for password or challenge-response
+IFS=
+while [ ! -b /dev/mapper/root ]; do
+    echo -en "\e[32m>>\e[37m Enter password for $rootfsblk, or press [Enter] for onlykey auth: "
+    read -sr response
+    echo
+
+    if [[ "$response" = "" ]]; then
+        okresp=$(ok-luks)
+        if [ $? -ne 0 ]; then
+            echo -en "\e[31m>>\e[37m Error: $okresp\n"
+            continue
+        fi
+        password=$okresp
+    else
+        password=$response
+    fi
+
+    unlockresp=$(echo -n $password | cryptsetup open ${rootfsblk} root -d - 2>&1)
+    if [ $? -ne 0 ]; then
+        echo -en "\e[31m>>\e[37m Error: $unlockresp\n"
+    fi
+done
 
 # Mount the root filesystem.
-cryptsetup open ${rootfsblk} root
+# cryptsetup open ${rootfsblk} root
 mount /dev/mapper/root /mnt/root
 
 
